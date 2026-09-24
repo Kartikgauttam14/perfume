@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MANSAM — Luxury AI Fragrance Concierge | مَنسم</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Amiri:wght@400;700&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div class="app-background"></div>
+
+    <header class="luxury-header">
+        <div class="brand-container">
+            <h1 class="brand-title">MANSAM</h1>
+            <span class="brand-subtitle" id="brandTagline">Haute Parfumerie Saudienne • Founded in Riyadh</span>
+        </div>
+
+        <div class="header-actions">
+            <button class="nav-tab active" id="tabChat" onclick="switchView('chat')">Concierge</button>
+            <button class="nav-tab" id="tabGalaxy" onclick="switchView('galaxy')">The Galaxy</button>
+            <button class="nav-tab" id="tabAdvisor" onclick="openTicketModal()">VIP Advisor</button>
+            <button class="nav-tab audio-toggle-btn" id="audioToggle" onclick="toggleAudio()" title="Toggle Voice Responses">
+                <span id="audioIcon">🔊</span> <span id="audioLabel">Voice On</span>
+            </button>
+            <button class="lang-toggle-btn" id="langToggle" onclick="toggleLanguage()">العربية</button>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <!-- CHAT VIEW -->
+        <section class="view-panel active" id="chatView">
+            <div class="chat-wrapper">
+                <div class="chat-banner">
+                    <div class="banner-badge">SSOT Grounded • IFRA Compliant • Voice & Text Enabled</div>
+                    <h2 class="banner-heading" id="chatHeading">Personal Fragrance Consultation</h2>
+                    <p class="banner-sub" id="chatSub">Discover your signature scent guided by 9th-century Arabian olfactory wisdom and modern French craftsmanship.</p>
+                </div>
+
+                <div class="quick-suggestions" id="suggestionsContainer">
+                    <button class="chip" onclick="sendQuickPrompt(this)">Tell me about Shatha Biladi</button>
+                    <button class="chip" onclick="sendQuickPrompt(this)">What is the Galaxy system?</button>
+                    <button class="chip" onclick="sendQuickPrompt(this)">Where are your KSA boutiques?</button>
+                    <button class="chip" onclick="sendQuickPrompt(this)">What is the 12ml complimentary offer?</button>
+                </div>
+
+                <div class="chat-messages" id="chatMessages">
+                    <div class="message bot-message">
+                        <div class="msg-avatar">M</div>
+                        <div class="msg-content">
+                            <div class="msg-header-row">
+                                <p id="welcomeMsg">Welcome to <strong>Mansam</strong>. It is my pleasure to guide you through our collection of fine fragrances. How may I assist your olfactory journey today?</p>
+                                <button class="speak-btn" onclick="speakMessage(this)" title="Listen to audio">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                                        <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                                        <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            <span class="msg-meta">Mansam Advisor • Verified SSOT</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Voice Recording Wave Indicator -->
+                <div class="voice-indicator" id="voiceIndicator" style="display:none;">
+                    <div class="voice-wave">
+                        <span></span><span></span><span></span><span></span><span></span>
+                    </div>
+                    <span id="voiceStatusText">Listening to your voice command... Speak now</span>
+                    <button class="cancel-voice-btn" onclick="stopVoiceRecording()">&times;</button>
+                </div>
+
+                <div class="chat-input-container">
+                    <button class="voice-btn" id="voiceBtn" onclick="toggleVoiceRecording()" title="Speak Voice Command">
+                        <svg class="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                            <line x1="12" y1="19" x2="12" y2="23"></line>
+                            <line x1="8" y1="23" x2="16" y2="23"></line>
+                        </svg>
+                    </button>
+                    <input type="text" id="userInput" placeholder="Type or click the microphone to speak..." onkeypress="handleKeyPress(event)">
+                    <button class="send-btn" id="sendBtn" onclick="sendMessage()" title="Send Message">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- THE GALAXY VIEW -->
+        <section class="view-panel" id="galaxyView">
+            <div class="galaxy-wrapper">
+                <div class="galaxy-header">
+                    <span class="gold-badge">Al-Kindi 9th-Century Lore</span>
+                    <h2 class="galaxy-title" id="galaxyTitle">The Mansam Galaxy (7 Emotional Dimensions)</h2>
+                    <p class="galaxy-desc" id="galaxyDesc">In Kitab Kimiya' al-'Itr, Abu Yusuf Al-Kindi demonstrated that aromatic compounds elicit specific emotional responses. Select a mood below to explore its matching creations.</p>
+                </div>
+
+                <div class="galaxy-grid" id="galaxyGrid">
+                    <!-- Loaded dynamically via JS -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- LANGUAGE SELECTION MODAL (INITIAL GATE) -->
+    <div class="modal-overlay active" id="langSelectModal">
+        <div class="modal-card lang-modal-card">
+            <button class="modal-close" onclick="closeLangModal()" title="Close">&times;</button>
+            <div class="lang-modal-logo">MANSAM</div>
+            <div class="modal-badge">مَنسم للعطور الفاخرة • Haute Parfumerie</div>
+            <h3 class="lang-modal-title">Select Language • اختر لغتك</h3>
+            <p class="lang-modal-sub">Please select your language to begin your bespoke fragrance journey.<br>يرجى اختيار لغتكم المفضلة لبدء الاستشارة العطرية المخصصة.</p>
+            
+            <div class="lang-options-grid">
+                <button class="lang-card-btn" onclick="selectLanguage('en')">
+                    <div class="lang-card-badge">English</div>
+                    <div class="lang-card-title">English Experience</div>
+                    <div class="lang-card-desc">Personalized fragrance advisory, notes, and direct boutique shopping.</div>
+                    <span class="lang-card-action">Start Conversation &rarr;</span>
+                </button>
+
+                <button class="lang-card-btn" onclick="selectLanguage('ar')">
+                    <div class="lang-card-badge">العربية</div>
+                    <div class="lang-card-title">التجربة العربية</div>
+                    <div class="lang-card-desc">استشارة عطرية مخصصة، تفاصيل النوتات، والتسوق المباشر من البوتيك.</div>
+                    <span class="lang-card-action">بدء المحادثة &larr;</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- VIP TICKET MODAL -->
+    <div class="modal-overlay" id="ticketModal">
+        <div class="modal-card">
+            <button class="modal-close" onclick="closeTicketModal()">&times;</button>
+            <div class="modal-badge">Direct Boutique Concierge</div>
+            <h3 class="modal-title" id="modalTitle">Request VIP Advisor Callback</h3>
+            <p class="modal-desc" id="modalDesc">Receive personalized consultation from our fragrance master within 48 hours or connect instantly via WhatsApp.</p>
+            
+            <form id="ticketForm" onsubmit="submitTicket(event)">
+                <div class="form-group">
+                    <label id="lblFullName">Full Name</label>
+                    <input type="text" id="custName" required placeholder="e.g. Faisal Al-Saud">
+                </div>
+                <div class="form-group">
+                    <label id="lblPhone">Phone / WhatsApp</label>
+                    <input type="tel" id="custPhone" required placeholder="+966 5x xxx xxxx">
+                </div>
+                <div class="form-group">
+                    <label id="lblCity">City / Boutique Preference</label>
+                    <input type="text" id="custCity" placeholder="Riyadh, Jeddah, Makkah, Madinah...">
+                </div>
+                <button type="submit" class="submit-ticket-btn" id="btnSubmitTicket">Generate VIP Ticket</button>
+            </form>
+
+            <div class="ticket-result" id="ticketResult" style="display:none;">
+                <p class="ticket-id" id="resultTicketId">TICK-XXXXXX</p>
+                <a href="#" class="wa-action-btn" id="resultWaLink" target="_blank">Open Official WhatsApp Concierge</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

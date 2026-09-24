@@ -1,0 +1,21 @@
+# Python & Environment
+.env
+.env.local
+.venv/
+env/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.pytest_cache/
+.pytest_cache/
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# Chromadb local cache / locks (if recreated on startup)
+# Note: chroma_db data can be regenerated from jsonl, but keep or ignore as appropriate
