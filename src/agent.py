@@ -1,11 +1,21 @@
-"""Mansam Luxury Concierge AI Agent with bilingual guardrails and SSOT grounding."""
-
+import json
+import logging
 import re
 import uuid
-import logging
 from typing import List, Optional, Tuple
 from src.config import settings
-from src.models import ChatMessage, ChatRequest, ChatResponse, Chunk, ProductCard
+from src.mistake_store import MistakeStore
+from src.models import (
+    ChatMessage,
+    ChatRequest,
+    ChatResponse,
+    Chunk,
+    FeedbackEvent,
+    FeedbackRequest,
+    FeedbackResponse,
+    MistakeLogEntry,
+    ProductCard,
+)
 from src.retriever import HybridRetriever
 
 logger = logging.getLogger(__name__)
@@ -14,8 +24,9 @@ logger = logging.getLogger(__name__)
 class ConciergeAgent:
     """Manages bilingual prompt formulation, LLM calls, and SSOT guardrails."""
 
-    def __init__(self, retriever: HybridRetriever):
+    def __init__(self, retriever: HybridRetriever, mistake_store: Optional[MistakeStore] = None):
         self.retriever = retriever
+        self.mistake_store = mistake_store or MistakeStore()
         self._init_llm_client()
 
     def _init_llm_client(self) -> None:
@@ -61,6 +72,18 @@ class ConciergeAgent:
 
     def _build_system_prompt(self, lang: str) -> str:
         """Constructs humanized sales consultant prompt (Layla) adhering to mansam_sales_chatbot_prompt1.md."""
+        active_rules = self.mistake_store.get_active_correction_rules()
+        rules_text = ""
+        if active_rules:
+            if lang == "ar":
+                rules_text = "\n\nقواعد تصحيح نشطة من ذاكرة الملاحظات (تجنبي تكرار هذه الأخطاء بأي شكل):\n" + "\n".join(
+                    f"- {r}" for r in active_rules
+                )
+            else:
+                rules_text = "\n\nACTIVE CORRECTION RULES (FROM FEEDBACK MEMORY — STRICTLY AVOID REPEATING):\n" + "\n".join(
+                    f"- {r}" for r in active_rules
+                )
+
         if lang == "ar":
             return (
                 "أنتِ **ليلى** (Layla)، مستشارة العطور الرسمية لدار عطور 'مَنسم' (Mansam) السعودية الفاخرة.\n"
@@ -80,6 +103,7 @@ class ConciergeAgent:
                 "   - أنتِ مخصصة حصرياً واستثنائياً لدار عطور 'مَنسم' ومنتجاتها العطرية وبوتيكاتها.\n"
                 "   - يمنع منعاً باتاً الإجابة عن أي أسئلة خارجية غير متعلقة بالعطور أو بدار مَنسم (مثل: البرمجة، الرياضيات، السياسة، الرياضة، الوصفات، أو المعلومات العامة).\n"
                 "   - في حال طرح أي سؤال خارج هذا الإطار، اعتذري بلباقة في جملة أو جملتين وأعيدي توجيه العميل بحفاوة إلى عالم عطور مَنسم."
+                + rules_text
             )
         return (
             "You are **Layla**, a luxury fragrance consultant for Mansam — a Saudi brand selling Attars, Eau de Parfum, Candles, Maamoul/Bukhoor, and Home Diffusers.\n"
@@ -100,6 +124,7 @@ class ConciergeAgent:
             "   - You are exclusively a fragrance advisor for Mansam Fine Fragrances. You ONLY answer questions related to perfumes, scents, attars, oud, fragrance notes, home scents, and Mansam boutiques/brand.\n"
             "   - You MUST NEVER answer outer questions unrelated to perfumes or this fragrance company (e.g. software programming/code, math, politics, sports, science/homework, recipes, weather, other industries, or general trivia).\n"
             "   - If the user asks ANY question outside of perfumes or Mansam, politely refuse in 1–2 sentences and steer them directly back to Mansam fragrances (e.g. 'As Mansam\'s fragrance consultant, I specialize exclusively in our fine perfumes and olfactory creations. How may I assist you with finding your signature scent today?')."
+            + rules_text
         )
 
     def _generate_completion(self, system: str, context: str, user_msg: str, history: List[ChatMessage]) -> str:
@@ -187,3 +212,137 @@ class ConciergeAgent:
         wa_number = settings.KSA_WHATSAPP.replace("+", "").replace(" ", "")
         wa_link = f"https://wa.me/{wa_number}?text=Mansam%20VIP%20Ticket%20{ticket_id}"
         return ticket_id, wa_link
+
+    def handle_feedback(self, request: FeedbackRequest) -> FeedbackResponse:
+        """Diagnoses a flagged bot response, regenerates a corrected answer, and persists a mistake log entry."""
+        lang = request.language if request.language in ["ar", "en"] else self.detect_language(
+            request.event.flagged_customer_query
+        )
+
+        # Retrieve relevant catalog context for the original query
+        top_chunks = self.retriever.retrieve(request.event.flagged_customer_query, top_k=5)
+        context_text = "\n---\n".join([f"[{c.chunk_id}]: {c.text}" for c, _ in top_chunks])
+
+        feedback_system = self._build_feedback_system_prompt(lang)
+        feedback_user_msg = self._build_feedback_user_message(request.event, lang)
+
+        # 1. Run the LLM to produce corrected reply + embedded JSON log
+        raw = self._generate_feedback_completion(feedback_system, context_text, feedback_user_msg, request.history)
+
+        # 2. Split out the structured mistake log from the conversational reply
+        corrected_reply, mistake_log = self._parse_feedback_output(raw, request.event.flagged_message_id)
+
+        # 3. Persist the mistake so future system prompts carry this correction rule
+        if mistake_log:
+            self.mistake_store.add_mistake(mistake_log)
+
+        matched_products = self._extract_products(corrected_reply + " " + request.event.flagged_customer_query)
+        suggested_url = matched_products[0].url if matched_products else None
+
+        return FeedbackResponse(
+            reply=corrected_reply,
+            language=lang,
+            mistake_log=mistake_log,
+            products=matched_products,
+            suggested_product_url=suggested_url,
+        )
+
+    def _build_feedback_system_prompt(self, lang: str) -> str:
+        """Builds the specialist regeneration prompt that instructs Layla to self-diagnose and correct."""
+        if lang == "ar":
+            return (
+                "أنتِ **ليلى**، مستشارة العطور لدار مَنسم. أشار العميل إلى أن ردّكِ السابق لم يكن دقيقاً أو مناسباً.\n\n"
+                "**المهمة — أربع خطوات داخلية بصمت:**\n"
+                "1. **التشخيص**: ما الذي طلبه العميل فعلاً؟ أيّ خطوة من التأهيل تخطيتِها أو افترضتِها (المناسبة ← لمن العطر ← الجنس/خط العطر ← العائلة العطرية ← الميزانية)؟ هل ادّعيتِ معلومات غير واردة في الكتالوج؟\n"
+                "2. **التصحيح**: اكتبي ردّاً طبيعياً وحاراً يُعالج الفجوة الفعلية — بأسلوب ليلى (جملة اعتراف لطيفة، ثم التقدم فوراً). لا تعتذري بإسهاب.\n"
+                "3. **السجلّ**: بعد ردّك، أضف كتلة JSON مُدمجة بالتنسيق أدناه (تُعالجها التطبيقة ولا تظهر للعميل).\n"
+                "4. **لا تكشفي عن أي من هذه الخطوات** للعميل.\n\n"
+                "تنسيق الإخراج المطلوب:\n"
+                "<CORRECTED_REPLY>\nردّك المُصحَّح بأسلوب ليلى هنا\n</CORRECTED_REPLY>\n"
+                "<MISTAKE_LOG>\n{\"event\":\"mistake_logged\",\"mistake_type\":\"...\",\"missed_steps\":[],\"trigger_pattern\":\"...\",\"correction_rule\":\"...\"}\n</MISTAKE_LOG>"
+            )
+        return (
+            "You are **Layla**, Mansam's fragrance consultant. A customer has flagged your previous response as incorrect.\n\n"
+            "**Your Task — Four silent internal steps:**\n"
+            "1. **DIAGNOSE**: What did the customer actually ask? Which qualifying step did you skip or assume "
+            "(Occasion → Gift-or-Self → Gender/Line → Scent Family → Budget)? Did you state anything not in the catalog?\n"
+            "2. **REGENERATE**: Write a natural, warm corrected reply that closes the diagnosed gap — in Layla's voice "
+            "(one brief natural pivot line, then immediate progress). No long apology.\n"
+            "3. **LOG**: After your reply, append a JSON block in the format below (consumed by the app, never shown to customer).\n"
+            "4. **Never reveal** any of these steps to the customer.\n\n"
+            "Required output format:\n"
+            "<CORRECTED_REPLY>\nyour corrected Layla reply here\n</CORRECTED_REPLY>\n"
+            "<MISTAKE_LOG>\n{\"event\":\"mistake_logged\",\"mistake_type\":\"...\",\"missed_steps\":[],\"trigger_pattern\":\"...\",\"correction_rule\":\"...\"}\n</MISTAKE_LOG>"
+        )
+
+    def _build_feedback_user_message(self, event: FeedbackEvent, lang: str) -> str:
+        """Constructs the user-turn message embedding the flagged query and response."""
+        if lang == "ar":
+            return (
+                f"استعلام العميل المُبلَّغ عنه: {event.flagged_customer_query}\n"
+                f"رد ليلى المُبلَّغ عنه: {event.flagged_bot_answer}\n\n"
+                "يرجى تشخيص الخطأ وكتابة رد مُصحَّح مع سجل الخطأ."
+            )
+        return (
+            f"Flagged customer query: {event.flagged_customer_query}\n"
+            f"Flagged Layla response: {event.flagged_bot_answer}\n\n"
+            "Please diagnose the mistake and provide a corrected reply with the mistake log."
+        )
+
+    def _generate_feedback_completion(
+        self, system: str, context: str, user_msg: str, history: List[ChatMessage]
+    ) -> str:
+        """Calls LLM for feedback-driven regeneration with slightly higher token budget."""
+        if self.provider == "openrouter":
+            messages = [{"role": "system", "content": f"{system}\n\nContext:\n{context}"}]
+            for m in history[-6:]:
+                messages.append({"role": m.role, "content": m.content})
+            messages.append({"role": "user", "content": user_msg})
+            res = self.llm.chat.completions.create(
+                model=settings.OPENROUTER_MODEL,
+                messages=messages,
+                temperature=0.3,
+                max_tokens=500,
+            )
+            return res.choices[0].message.content.strip()
+
+        # Fallback when no API key
+        lang = self.detect_language(user_msg)
+        if lang == "ar":
+            return (
+                "<CORRECTED_REPLY>\nآسفة على أي التباس! دعينا نعود خطوة — هل العطر هدية أم لنفسك؟ "
+                "وهل نبحث في خط الرجال أم النساء؟ حين أعرف ذلك أقدر أرشّح لك بدقة 🤍\n</CORRECTED_REPLY>\n"
+                "<MISTAKE_LOG>\n{\"event\":\"mistake_logged\",\"mistake_type\":\"skipped_qualifying_question\","
+                "\"missed_steps\":[\"gift_or_self\",\"gender\"],\"trigger_pattern\":\"customer gave occasion only, bot recommended without asking recipient and gender\","
+                "\"correction_rule\":\"Always confirm gift-or-self and gender before recommending products when only an occasion is stated.\"}\n</MISTAKE_LOG>"
+            )
+        return (
+            "<CORRECTED_REPLY>\nAh, let me back up a step — is this perfume for yourself or a gift? "
+            "And are we thinking men's, women's, or unisex? Once I know that I can actually narrow it down properly 🤍\n</CORRECTED_REPLY>\n"
+            "<MISTAKE_LOG>\n{\"event\":\"mistake_logged\",\"mistake_type\":\"skipped_qualifying_question\","
+            "\"missed_steps\":[\"gift_or_self\",\"gender\"],\"trigger_pattern\":\"customer gave occasion only, bot recommended without asking recipient and gender\","
+            "\"correction_rule\":\"Always confirm gift-or-self and gender before recommending products when only an occasion is stated.\"}\n</MISTAKE_LOG>"
+        )
+
+    def _parse_feedback_output(
+        self, raw: str, flagged_message_id: Optional[str]
+    ) -> Tuple[str, Optional[MistakeLogEntry]]:
+        """Extracts the corrected reply and structured mistake log from the LLM output."""
+        import re as _re
+
+        # Extract corrected reply
+        reply_match = _re.search(r"<CORRECTED_REPLY>(.*?)</CORRECTED_REPLY>", raw, _re.DOTALL)
+        corrected_reply = reply_match.group(1).strip() if reply_match else raw.strip()
+
+        # Extract and parse mistake log JSON
+        log_match = _re.search(r"<MISTAKE_LOG>(.*?)</MISTAKE_LOG>", raw, _re.DOTALL)
+        mistake_log: Optional[MistakeLogEntry] = None
+        if log_match:
+            try:
+                log_data = json.loads(log_match.group(1).strip())
+                log_data["flagged_message_id"] = flagged_message_id
+                mistake_log = MistakeLogEntry(**log_data)
+            except Exception as exc:
+                logger.warning("Could not parse mistake log JSON: %s", exc)
+
+        return corrected_reply, mistake_log

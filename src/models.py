@@ -77,3 +77,43 @@ class TicketRequest(BaseModel):
     preferred_fragrance: Optional[str] = None
     city: Optional[str] = None
     notes: Optional[str] = None
+
+
+class FeedbackEvent(BaseModel):
+    """Event payload for flagged incorrect answer."""
+
+    event: str = "incorrect_answer_flagged"
+    flagged_message_id: str
+    flagged_customer_query: str
+    flagged_bot_answer: str
+
+
+class MistakeLogEntry(BaseModel):
+    """Structured mistake log for memory and persistent prevention."""
+
+    event: str = "mistake_logged"
+    mistake_type: str = Field(..., description="e.g. skipped_qualifying_question, wrong_assumption, ungrounded_claim")
+    missed_steps: List[str] = Field(default_factory=list)
+    trigger_pattern: str = Field(..., description="General situation that caused the mistake")
+    correction_rule: str = Field(..., description="Standing guardrail to prevent repeating the mistake")
+    flagged_message_id: Optional[str] = None
+    timestamp: Optional[str] = None
+
+
+class FeedbackRequest(BaseModel):
+    """Client request to diagnose and regenerate a flagged response."""
+
+    event: FeedbackEvent
+    history: List[ChatMessage] = Field(default_factory=list)
+    language: Optional[str] = Field(default="auto", description="'auto', 'ar', or 'en'")
+
+
+class FeedbackResponse(BaseModel):
+    """Response returned upon feedback regeneration."""
+
+    reply: str
+    language: str
+    mistake_log: Optional[MistakeLogEntry] = None
+    products: List[ProductCard] = Field(default_factory=list)
+    suggested_product_url: Optional[str] = None
+

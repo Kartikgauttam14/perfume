@@ -14,7 +14,8 @@ from fastapi.staticfiles import StaticFiles
 from src.agent import ConciergeAgent
 from src.config import settings
 from src.loader import KnowledgeLoader
-from src.models import ChatRequest, ChatResponse, GalaxyCategory, TicketRequest
+from src.mistake_store import MistakeStore
+from src.models import ChatRequest, ChatResponse, FeedbackRequest, FeedbackResponse, GalaxyCategory, TicketRequest
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("mansam.main")
@@ -40,7 +41,8 @@ if vectordb.count() == 0:
     vectordb.feed_from_jsonl()
 
 search_engine = HybridRetriever(chunks, vectordb=vectordb)
-agent = ConciergeAgent(search_engine)
+mistake_store = MistakeStore()
+agent = ConciergeAgent(search_engine, mistake_store=mistake_store)
 galaxy_data = loader.load_galaxy_categories()
 
 # Static assets directory
@@ -66,6 +68,22 @@ async def chat_endpoint(request: ChatRequest) -> ChatResponse:
     except Exception as e:
         logger.error("Chat error: %s", e)
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/chat/feedback", response_model=FeedbackResponse)
+async def feedback_endpoint(request: FeedbackRequest) -> FeedbackResponse:
+    """Diagnoses a flagged bot response and returns a corrected reply with a persisted mistake log."""
+    try:
+        return agent.handle_feedback(request)
+    except Exception as e:
+        logger.error("Feedback regeneration error: %s", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/chat/mistakes")
+async def list_mistakes() -> list:
+    """Returns all persisted mistake log entries (admin-facing)."""
+    return [m.model_dump() for m in mistake_store.get_all()]
 
 
 @app.get("/api/galaxy", response_model=List[GalaxyCategory])

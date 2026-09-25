@@ -264,6 +264,57 @@ body[dir="rtl"] {
     letter-spacing: 0.05em;
 }
 
+.msg-header-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.msg-header-row p {
+    flex: 1;
+    margin: 0;
+}
+
+.speak-btn,
+.feedback-btn {
+    background: transparent;
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 6px;
+    color: rgba(212, 175, 55, 0.6);
+    cursor: pointer;
+    padding: 4px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+}
+
+.speak-btn:hover,
+.feedback-btn:hover {
+    color: var(--gold);
+    border-color: var(--gold);
+    background: var(--gold-glow);
+}
+
+.feedback-btn.flagged {
+    color: #e05555;
+    border-color: #e05555;
+    background: rgba(224, 85, 85, 0.08);
+    cursor: not-allowed;
+}
+
+.feedback-btn.regenerating {
+    opacity: 0.5;
+    cursor: wait;
+    animation: pulse-glow 1s infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
 .chat-input-container {
     display: flex;
     padding: 1rem 1.5rem;

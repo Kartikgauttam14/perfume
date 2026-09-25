@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     # Data & Vector DB paths
     CHUNKS_PATH: Path = BASE_DIR / "mansam_chunks.jsonl"
     SUMMARY_PATH: Path = BASE_DIR / "mansam_chunks_summary.json"
+    MISTAKES_PATH: Path = BASE_DIR / "mansam_mistakes.json"
     CHROMA_PERSIST_DIRECTORY: Path = BASE_DIR / "chroma_db"
     CHROMA_COLLECTION_NAME: str = "mansam_knowledge"
     CHROMA_DISTANCE_METRIC: str = "cosine"

@@ -474,7 +474,17 @@ function sendQuickPrompt(btn) {
 function appendMessage(role, text, products = [], suggestedUrl = null) {
     const container = document.getElementById("chatMessages");
     const msgDiv = document.createElement("div");
+    const msgId = "msg-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7);
     msgDiv.className = `message ${role === "user" ? "user-message" : "bot-message"}`;
+    msgDiv.id = msgId;
+    if (role === "bot") {
+        msgDiv.dataset.botAnswer = text;
+        // Capture the last user message for feedback correlation
+        const msgs = container.querySelectorAll(".user-message");
+        msgDiv.dataset.userQuery = msgs.length ? msgs[msgs.length - 1].dataset.userMsg || "" : "";
+    } else {
+        msgDiv.dataset.userMsg = text;
+    }
 
     let html = `
         <div class="msg-avatar">${role === "user" ? "U" : "L"}</div>
@@ -487,6 +497,12 @@ function appendMessage(role, text, products = [], suggestedUrl = null) {
                             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
                             <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
                             <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+                        </svg>
+                    </button>
+                    <button class="feedback-btn" onclick="flagAnswer('${msgId}')" title="${currentLang === 'ar' ? 'إجابة غير صحيحة' : 'Incorrect answer'}">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 15v4a3 3 0 0 0 3 3l4-9V2H5.72a2 2 0 0 0-2 1.7l-1.38 9a2 2 0 0 0 2 2.3z"></path>
+                            <path d="M17 2h2.67A2.31 2.31 0 0 1 22 4v7a2.31 2.31 0 0 1-2.33 2H17"></path>
                         </svg>
                     </button>
                 ` : ""}
@@ -551,6 +567,106 @@ function removeLoading(id) {
     const el = document.getElementById(id);
     if (el) el.remove();
 }
+
+// ==========================================
+// Feedback Regeneration (👎 Incorrect Answer)
+// ==========================================
+
+async function flagAnswer(msgId) {
+    const msgDiv = document.getElementById(msgId);
+    if (!msgDiv) return;
+
+    const feedbackBtn = msgDiv.querySelector(".feedback-btn");
+    if (feedbackBtn && feedbackBtn.classList.contains("flagged")) return; // already flagged
+
+    // Mark button as regenerating
+    if (feedbackBtn) {
+        feedbackBtn.classList.add("regenerating");
+        feedbackBtn.disabled = true;
+    }
+
+    const flaggedBotAnswer = msgDiv.dataset.botAnswer || msgDiv.querySelector("p")?.innerText || "";
+    const flaggedCustomerQuery = msgDiv.dataset.userQuery || "";
+    const flaggedMessageId = msgId;
+
+    // Build history from current DOM (up to 6 messages)
+    const allMsgs = Array.from(document.querySelectorAll("#chatMessages .message"));
+    const historySlice = allMsgs.slice(-8).filter(m => m.id !== msgId).map(m => ({
+        role: m.classList.contains("user-message") ? "user" : "assistant",
+        content: m.dataset.userMsg || m.dataset.botAnswer || m.querySelector("p")?.innerText || ""
+    }));
+
+    try {
+        const res = await fetch("/api/chat/feedback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                event: {
+                    event: "incorrect_answer_flagged",
+                    flagged_message_id: flaggedMessageId,
+                    flagged_customer_query: flaggedCustomerQuery,
+                    flagged_bot_answer: flaggedBotAnswer
+                },
+                history: historySlice,
+                language: currentLang
+            })
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        // Replace the message content with the corrected reply
+        const pEl = msgDiv.querySelector("p");
+        if (pEl) pEl.innerHTML = data.reply.replace(/\n/g, "<br>");
+        msgDiv.dataset.botAnswer = data.reply;
+
+        // Update product cards if new ones returned
+        const existingShowcase = msgDiv.querySelector(".product-showcase");
+        if (existingShowcase) existingShowcase.remove();
+        if (data.products && data.products.length > 0) {
+            const showcase = document.createElement("div");
+            showcase.className = "product-showcase";
+            data.products.forEach(p => {
+                const shopLabel = currentLang === "ar" ? "تسوق الآن" : "Shop Now";
+                showcase.innerHTML += `
+                    <div class="product-card">
+                        <div class="prod-name">${p.name}</div>
+                        <div class="prod-collection">${p.collection} • ${p.mood || ""}</div>
+                        <div class="prod-price">${p.price_sar} SAR</div>
+                        <div class="prod-notes">${p.notes.join(", ")}</div>
+                        ${p.url ? `<a href="${p.url}" target="_blank" class="prod-shop-btn">${shopLabel}</a>` : ""}
+                    </div>
+                `;
+            });
+            const msgContent = msgDiv.querySelector(".msg-content");
+            const metaEl = msgContent?.querySelector(".msg-meta");
+            if (metaEl) msgContent.insertBefore(showcase, metaEl);
+            else msgContent?.appendChild(showcase);
+        }
+
+        // Mark button as successfully flagged
+        if (feedbackBtn) {
+            feedbackBtn.classList.remove("regenerating");
+            feedbackBtn.classList.add("flagged");
+            feedbackBtn.title = currentLang === "ar" ? "تم تصحيح الإجابة" : "Answer corrected";
+            feedbackBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+        }
+
+        // Auto-speak the corrected reply if audio is on
+        if (isAudioEnabled && data.reply) {
+            const speakBtn = msgDiv.querySelector(".speak-btn");
+            if (speakBtn) speakMessage(speakBtn);
+        }
+
+    } catch (err) {
+        console.error("Feedback error:", err);
+        if (feedbackBtn) {
+            feedbackBtn.classList.remove("regenerating");
+            feedbackBtn.disabled = false;
+        }
+    }
+}
+
 
 // ==========================================
 // Galaxy & VIP Ticket
