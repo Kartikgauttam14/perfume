@@ -18,7 +18,8 @@ const translations = {
         langToggle: "العربية",
         chatHeading: "Personal Fragrance Consultation",
         chatSub: "Discover your signature scent guided by 9th-century Arabian olfactory wisdom and modern French craftsmanship.",
-        welcomeMsg: "Welcome to <strong>Mansam</strong>. It is my pleasure to guide you through our collection of fine fragrances. How may I assist your olfactory journey today?",
+        welcomeMsg: "Hey there! I'm <strong>Layla</strong>, your fragrance consultant at Mansam 🤍 Whether you're looking for a signature scent, something for a night out, or a gift, I'm here to help you find 'the one'. What can I help you find today?",
+        advisorBadge: "Layla • Fragrance Consultant",
         inputPlaceholder: "Type or click the microphone to speak...",
         galaxyTitle: "The Mansam Galaxy (7 Emotional Dimensions)",
         galaxyDesc: "In Kitab Kimiya' al-'Itr, Abu Yusuf Al-Kindi demonstrated that aromatic compounds elicit specific emotional responses. Select a mood below to explore its matching creations.",
@@ -48,7 +49,8 @@ const translations = {
         langToggle: "English",
         chatHeading: "استشارة عطرية خاصة",
         chatSub: "اكتشف عطرك المميز المستوحى من حكمة الكندي وفلسفة العطور العربية العريقة مع دقة الصياغة الفرنسية.",
-        welcomeMsg: "أهلاً بك في <strong>مَنسم</strong>. يسعدني مرافقتكم في رحلتكم لاكتشاف أروع الإبداعات العطرية. كيف يمكنني خدمتكم اليوم؟",
+        welcomeMsg: "أهلاً بك! أنا **ليلى**، مستشارتك العطرية في دار مَنسم 🤍 يسعدني جداً مساعدتك في اختيار عطرك الاستثنائي أو هدية مميزة لمن تحب. ما الذي تبحث عنه اليوم؟",
+        advisorBadge: "ليلى • مستشارة مَنسم العطرية",
         inputPlaceholder: "اكتب رسالتك أو اضغط على الميكروفون للتحدث...",
         galaxyTitle: "مجرة مَنسم (الأبعاد العاطفية السبعة)",
         galaxyDesc: "استندت مَنسم إلى كتاب 'كيمياء العطر والتصعيدات' للعالم الكندي لابتكار تصنيف عاطفي فريد يرشدكم إلى العطر المناسب لحالتكم الشعورية.",
@@ -154,7 +156,7 @@ function applyLanguage(lang, clearChat = false) {
         if (chatMessages) {
             chatMessages.innerHTML = `
                 <div class="message bot-message">
-                    <div class="msg-avatar">M</div>
+                    <div class="msg-avatar">L</div>
                     <div class="msg-content">
                         <div class="msg-header-row">
                             <p id="welcomeMsg">${t.welcomeMsg}</p>
@@ -166,7 +168,7 @@ function applyLanguage(lang, clearChat = false) {
                                 </svg>
                             </button>
                         </div>
-                        <span class="msg-meta">Mansam Advisor • Verified SSOT</span>
+                        <span class="msg-meta">${t.advisorBadge}</span>
                     </div>
                 </div>
             `;
@@ -475,7 +477,7 @@ function appendMessage(role, text, products = [], suggestedUrl = null) {
     msgDiv.className = `message ${role === "user" ? "user-message" : "bot-message"}`;
 
     let html = `
-        <div class="msg-avatar">${role === "user" ? "U" : "M"}</div>
+        <div class="msg-avatar">${role === "user" ? "U" : "L"}</div>
         <div class="msg-content">
             <div class="msg-header-row">
                 <p>${text.replace(/\n/g, "<br>")}</p>
@@ -517,8 +519,9 @@ function appendMessage(role, text, products = [], suggestedUrl = null) {
         `;
     }
 
+    const botBadge = (translations[currentLang] && translations[currentLang].advisorBadge) || "Layla • Fragrance Consultant";
     html += `
-            <span class="msg-meta">${role === "user" ? "Client" : "Mansam Advisor • Verified SSOT"}</span>
+            <span class="msg-meta">${role === "user" ? (currentLang === "ar" ? "العميل" : "Client") : botBadge}</span>
         </div>
     `;
 
@@ -534,7 +537,7 @@ function appendLoading() {
     div.id = id;
     div.className = "message bot-message";
     div.innerHTML = `
-        <div class="msg-avatar">M</div>
+        <div class="msg-avatar">L</div>
         <div class="msg-content">
             <p style="color:var(--text-muted); font-style:italic;">${currentLang === "ar" ? "جاري البحث في الأرشيف العطري..." : "Consulting olfactory archives..."}</p>
         </div>
