@@ -55,3 +55,17 @@ def test_build_ticket_link(agent):
     assert "wa.me" in wa_link
     assert ticket_id in wa_link
 
+
+def test_off_topic_filter_english(agent):
+    """Off-topic non-perfume queries are politely declined and steered back to Mansam."""
+    req = ChatRequest(message="Write a python script to solve quadratic equations", language="en")
+    res = agent.chat(req)
+    assert any(w in res.reply.lower() for w in ["fragrance", "perfume", "mansam", "specialize", "scent"])
+
+
+def test_off_topic_filter_arabic(agent):
+    """Arabic off-topic non-perfume queries are politely declined and steered back to Mansam."""
+    req = ChatRequest(message="ما هي عاصمة إيطاليا؟", language="ar")
+    res = agent.chat(req)
+    assert any(w in res.reply for w in ["عطور", "مَنسم", "منسم", "أعتذر", "المستشار العطري"])
+
