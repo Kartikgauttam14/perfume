@@ -585,16 +585,25 @@ async function flagAnswer(msgId) {
         feedbackBtn.disabled = true;
     }
 
+    // Use dataset.botAnswer for the flagged reply
     const flaggedBotAnswer = msgDiv.dataset.botAnswer || msgDiv.querySelector("p")?.innerText || "";
-    const flaggedCustomerQuery = msgDiv.dataset.userQuery || "";
-    const flaggedMessageId = msgId;
 
-    // Build history from current DOM (up to 6 messages)
-    const allMsgs = Array.from(document.querySelectorAll("#chatMessages .message"));
-    const historySlice = allMsgs.slice(-8).filter(m => m.id !== msgId).map(m => ({
-        role: m.classList.contains("user-message") ? "user" : "assistant",
-        content: m.dataset.userMsg || m.dataset.botAnswer || m.querySelector("p")?.innerText || ""
-    }));
+    // Find the last user query from conversationHistory (most reliable source)
+    // conversationHistory alternates: user, assistant, user, assistant...
+    // Find the user message that immediately preceded this bot message by scanning history in reverse
+    let flaggedCustomerQuery = msgDiv.dataset.userQuery || "";
+    if (!flaggedCustomerQuery) {
+        // Fallback: walk conversationHistory backwards to find the last user turn
+        for (let i = conversationHistory.length - 1; i >= 0; i--) {
+            if (conversationHistory[i].role === "user") {
+                flaggedCustomerQuery = conversationHistory[i].content;
+                break;
+            }
+        }
+    }
+
+    // Use conversationHistory directly — it's already a clean [{role, content}] array
+    const historySlice = conversationHistory.slice(-10);
 
     try {
         const res = await fetch("/api/chat/feedback", {
@@ -603,7 +612,7 @@ async function flagAnswer(msgId) {
             body: JSON.stringify({
                 event: {
                     event: "incorrect_answer_flagged",
-                    flagged_message_id: flaggedMessageId,
+                    flagged_message_id: msgId,
                     flagged_customer_query: flaggedCustomerQuery,
                     flagged_bot_answer: flaggedBotAnswer
                 },
@@ -612,7 +621,11 @@ async function flagAnswer(msgId) {
             })
         });
 
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+            const errText = await res.text();
+            console.error("Feedback API error:", res.status, errText);
+            throw new Error(`HTTP ${res.status}`);
+        }
         const data = await res.json();
 
         // Replace the message content with the corrected reply
