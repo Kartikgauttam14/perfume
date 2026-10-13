@@ -25,12 +25,26 @@ export function fallbackReply(query) {
   const keywords = [
     ['oud', /\b(oud|oudh)\b|عود/], ['rose', /\b(rose|roses)\b|ورد/],
     ['jasmine', /\bjasmine\b|ياسمين/], ['musk', /\bmusk\b|مسك/],
-    ['vanilla', /\bvanilla\b|فانيلا/], ['citrus', /\b(citrus|fresh|summer|daily)\b|منعش|صيف/],
-    ['leather', /\b(leather|smoky|smokey|bold)\b|جلد|دخاني/],
+    ['vanilla', /\bvanilla\b|فانيلا/], ['citrus', /\bcitrus\b|حمضيات/],
+    ['fresh', /\b(fresh|summer|daily)\b|منعش|صيف/],
+    ['floral', /\b(floral|flowery|flowers?|florals)\b|زهري|زهرية|زهور/],
+    ['sweet', /\b(sweet|gourmand)\b|حلو|سكرية/],
+    ['woody', /\b(woody|woods?|woodsy)\b|خشبي|خشبية/],
+    ['smoky', /\b(smoky|smokey|bold)\b|دخاني/],
+    ['leather', /\bleather\b|جلد/],
   ].filter(([, pattern]) => pattern.test(q)).map(([note]) => note);
+  const families = {
+    floral: ['rose','jasmine','narcissus','lily','floral','orange blossom','neroli'],
+    fresh: ['citrus','bergamot','neroli','orange blossom','rain'],
+    sweet: ['vanilla','almond','benzoin','plum'],
+    woody: ['wood','oud','sandalwood','cedar'],
+    smoky: ['smok','leather','incense'],
+  };
+  const matches = (product, keyword) => product.notes.some(note =>
+    (families[keyword] || [keyword]).some(term => normalize(note).includes(term)));
   const excluded = [...q.matchAll(/\b(?:no|not|without|avoid)\s+(oudh?|rose|jasmine|musk|vanilla|leather)\b/g)].map(m => m[1].replace('oudh','oud'));
   const ranked = PRODUCTS.map(p => ({p,score: normalize(q).includes(normalize(p.name)) ? 100 :
-    keywords.filter(k => p.notes.some(n => normalize(n).includes(k))).length}))
+    keywords.filter(k => matches(p,k)).length}))
     .filter(({p,score}) => score > 0 && !excluded.some(k => p.notes.some(n => normalize(n).includes(k))))
     .sort((a,b) => b.score-a.score).slice(0,3).map(x => x.p);
   if (ranked.length) return reply('Here are Mansam perfumes matching your request.\nTap Shop Now to explore each fragrance.', 'هذه عطور منسم المطابقة لطلبك.\nاضغط «تسوق الآن» لاستكشاف كل عطر.', ranked);

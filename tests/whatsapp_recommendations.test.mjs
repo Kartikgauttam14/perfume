@@ -25,6 +25,19 @@ test('exact product gets a single image/URL button; multi-product gets carousel'
   assert.deepEqual(many.interactive.action.cards.map(c=>c.card_index),[0,1,2]);
 });
 
+test('all offered scent choices return three relevant perfume cards, including Floral follow-up',async()=>{
+  for (const choice of ['Floral','Fresh','Oud','Musk','Sweet','Woody','Smoky','زهري','منعش']) {
+    const reply=await prepareReply({text:{body:choice}});
+    assert.equal(reply.products.length,3,choice);
+    const payload=replyPayload('10000000000',reply);
+    assert.equal(payload.interactive.type,'carousel',choice);
+    assert.equal(payload.interactive.action.cards.length,3,choice);
+    assert.equal(payload.interactive.body.text.split('\n').length,2,choice);
+  }
+  assert.ok(fallbackReply('Floral').products.every(p=>p.notes.some(n=>/rose|jasmine|narcissus|lily|floral|blossom|neroli/i.test(n))));
+  assert.ok(fallbackReply('Fresh').products.every(p=>p.notes.some(n=>/citrus|bergamot|neroli|blossom|rain/i.test(n))));
+});
+
 test('short replies never exceed two lines or 110 characters per line',()=>{
   assert.equal(twoLines('First line.\nSecond line.\nUnwanted line.'),'First line.\nSecond line.');
   assert.ok(twoLines('x'.repeat(1000)).length<=110);
