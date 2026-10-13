@@ -16,6 +16,11 @@ class Settings(BaseSettings):
     PORT: int = 8000
     DEBUG: bool = True
 
+    WHATSAPP_VERIFY_TOKEN: str = ""
+    META_APP_SECRET: str = ""
+    WHATSAPP_PHONE_NUMBER_ID: str = ""
+    WHATSAPP_INBOX_PATH: Path = BASE_DIR / "data" / "whatsapp.sqlite3"
+
     # Data & Vector DB paths
     CHUNKS_PATH: Path = BASE_DIR / "mansam_chunks.jsonl"
     SUMMARY_PATH: Path = BASE_DIR / "mansam_chunks_summary.json"

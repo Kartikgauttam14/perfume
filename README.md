@@ -1,5 +1,33 @@
 # 💎 Mansam Luxury Fragrance AI Concierge
 
+## WhatsApp Cloud API webhook
+
+The endpoint `/api/whatsapp/webhook` verifies Meta's GET challenge and authenticates
+POST events using `X-Hub-Signature-256`. It stores incoming messages and delivery
+statuses in a deduplicated SQLite inbox. It does not send automatic replies or
+marketing messages yet; a worker and conversation policy must be connected before
+enabling the concierge on WhatsApp. No access token is needed for this ingress.
+
+1. Deploy the changed files to the existing Render service.
+2. In Render environment settings, set `WHATSAPP_VERIFY_TOKEN` to a random secret,
+   `META_APP_SECRET` to the existing Mansam Perfume app secret, and
+   `WHATSAPP_PHONE_NUMBER_ID` to `1307049029167597`. Keep all secrets out of GitHub
+   and chat. Set `WHATSAPP_INBOX_PATH` to a location on an existing persistent disk,
+   such as `/var/data/whatsapp.sqlite3`. Render's ordinary filesystem is ephemeral;
+   without persistent storage, events will be lost on restart/redeploy. Adding a
+   paid disk or changing the service plan requires the owner's approval.
+3. After deployment, set Meta's callback to
+   `https://perfume-p6gi.onrender.com/api/whatsapp/webhook` and use the same verify
+   token. Click Verify and save, subscribe to the `messages` field and the Mansam
+   messaging account. Subscribing exposes customer events to this server and must
+   be approved by the owner.
+4. Complete Meta's publish requirements before receiving production webhooks.
+   Confirm publishing with the owner; business verification alone is insufficient.
+5. Test signed webhook delivery and check the inbox on the server. Do not expose
+   a public inbox viewer. Configure retention/access controls for customer data.
+
+Run isolated webhook tests with `python -m pytest tests/test_whatsapp.py`.
+
 > An intelligent, bilingual AI Concierge & Discovery Suite for **Mansam Fine Fragrances** (Kingdom of Saudi Arabia), built on Retrieval-Augmented Generation (RAG) directly grounded in the brand's Single Source of Truth (SSOT).
 
 ---

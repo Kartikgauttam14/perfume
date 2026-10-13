@@ -17,5 +17,10 @@ __pycache__/
 Thumbs.db
 *.log
 
+# Private WhatsApp inbox
+data/
+*.sqlite3
+*.sqlite3-*
+
 # Chromadb local cache / locks (if recreated on startup)
 # Note: chroma_db data can be regenerated from jsonl, but keep or ignore as appropriate
