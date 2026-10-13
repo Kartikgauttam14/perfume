@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     META_APP_SECRET: str = ""
     WHATSAPP_PHONE_NUMBER_ID: str = ""
     WHATSAPP_INBOX_PATH: Path = BASE_DIR / "data" / "whatsapp.sqlite3"
+    WHATSAPP_AUTO_REPLY_ENABLED: bool = False
+    WHATSAPP_ACCESS_TOKEN: str = ""
+    WHATSAPP_API_VERSION: str = "v25.0"
+    WHATSAPP_TEMPLATE_NAME: str = "shop_now"
+    WHATSAPP_TEMPLATE_LANGUAGE: str = "en"
+    WHATSAPP_TEMPLATE_IMAGE_URL: str = "https://ae.mansamworld.com/images/products/480/Safaa_Al_Nada_3.jpg"
+    WHATSAPP_TEMPLATE_IMAGE_ID: str = ""
 
     # Data & Vector DB paths
     CHUNKS_PATH: Path = BASE_DIR / "mansam_chunks.jsonl"

@@ -4,9 +4,11 @@
 
 The endpoint `/api/whatsapp/webhook` verifies Meta's GET challenge and authenticates
 POST events using `X-Hub-Signature-256`. It stores incoming messages and delivery
-statuses in a deduplicated SQLite inbox. It does not send automatic replies or
-marketing messages yet; a worker and conversation policy must be connected before
-enabling the concierge on WhatsApp. No access token is needed for this ingress.
+statuses in a deduplicated SQLite inbox. An optional worker sends the approved
+`shop_now` English (`en`) template once per new incoming customer message, including
+media messages. Status events, reactions, system events, and messages older than
+24 hours do not trigger replies. The static Shop Now button is part of the template;
+the image header must be supplied at send time. Auto replies are disabled by default.
 
 1. Deploy the changed files to the existing Render service.
 2. In Render environment settings, set `WHATSAPP_VERIFY_TOKEN` to a random secret,
@@ -23,10 +25,29 @@ enabling the concierge on WhatsApp. No access token is needed for this ingress.
    be approved by the owner.
 4. Complete Meta's publish requirements before receiving production webhooks.
    Confirm publishing with the owner; business verification alone is insufficient.
-5. Test signed webhook delivery and check the inbox on the server. Do not expose
+5. Set `WHATSAPP_ACCESS_TOKEN` securely in Render (existing token with
+   `whatsapp_business_messaging` access to this phone number), plus either
+   `WHATSAPP_TEMPLATE_IMAGE_URL` (public HTTPS JPG/PNG; defaults to the Safaa Al Nada
+   product image on ae.mansamworld.com) or
+   `WHATSAPP_TEMPLATE_IMAGE_ID` (valid WhatsApp media ID). Then set
+   `WHATSAPP_AUTO_REPLY_ENABLED=True` and restart the service. Keep the template
+   name `shop_now`, language `en`, and API version `v25.0` unless intentionally
+   changing the approved template/API version. Run one web process/instance for
+   this SQLite-backed worker. Use a shared queue/database before scaling replicas.
+6. Test signed webhook delivery and check the inbox on the server. Do not expose
    a public inbox viewer. Configure retention/access controls for customer data.
+   Inbox `processed` states: 0 pending, 2 claimed/possibly sent, 1 Meta accepted,
+   3 ignored/expired, -1 failed/uncertain. Failed or interrupted sends need manual
+   review before retrying because Meta may have accepted a timed-out request.
+   Meta's accepted response does not guarantee delivery; check status events.
+   Changing a row to 0 can resend it. Do not reset states without checking delivery.
+   Keep storage persistent or duplicate protection will be lost on redeployment.
 
-Run isolated webhook tests with `python -m pytest tests/test_whatsapp.py`.
+No LLM is called and no message content is sent to OpenRouter by this worker.
+Automatic replies may incur Meta marketing-template charges. It does not broadcast
+to contacts or send proactive campaigns.
+
+Run isolated tests with `python -m pytest tests/test_whatsapp.py tests/test_whatsapp_reply.py`.
 
 > An intelligent, bilingual AI Concierge & Discovery Suite for **Mansam Fine Fragrances** (Kingdom of Saudi Arabia), built on Retrieval-Augmented Generation (RAG) directly grounded in the brand's Single Source of Truth (SSOT).
 

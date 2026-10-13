@@ -17,12 +17,13 @@ from src.loader import KnowledgeLoader
 from src.mistake_store import MistakeStore
 from src.models import ChatRequest, ChatResponse, FeedbackRequest, FeedbackResponse, GalaxyCategory, TicketRequest
 from src.whatsapp import router as whatsapp_router
+from src.whatsapp_reply import whatsapp_lifespan
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("mansam.main")
 
 # Initialize app and components
-app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION)
+app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION, lifespan=whatsapp_lifespan)
 app.include_router(whatsapp_router)
 app.add_middleware(
     CORSMiddleware,
