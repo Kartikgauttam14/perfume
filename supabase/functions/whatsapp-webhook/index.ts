@@ -1,6 +1,6 @@
 // @ts-nocheck
 // Meta signatures authenticate this endpoint; no Supabase user JWT is expected.
-const IMAGE = 'https://ae.mansamworld.com/images/products/480/Safaa_Al_Nada_3.jpg';
+import { prepareReply, replyPayload } from './reply.ts';
 
 export async function validSignature(raw, signature, secret) {
   if (!/^sha256=[0-9a-f]{64}$/.test(signature || '') || !secret) return false;
@@ -25,19 +25,17 @@ export function makeHandler(config, fetcher = fetch, waitUntil = null) {
   }
   async function send(message) {
     try {
+      const reply = await prepareReply(message, config, fetcher);
       const response = await fetcher(
         `https://graph.facebook.com/${config.version}/${config.phoneId}/messages`, {
           method: 'POST', headers: { Authorization: `Bearer ${config.token}`,
             'Content-Type': 'application/json' }, signal: AbortSignal.timeout(20000),
-          body: JSON.stringify({ messaging_product: 'whatsapp', to: message.from,
-            type: 'template', template: { name: 'shop_now', language: { code: 'en' },
-              components: [{ type: 'header', parameters: [{ type: 'image',
-                image: { link: config.image || IMAGE } }] }] } }),
+          body: JSON.stringify(replyPayload(message.from, reply)),
         });
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         await finish(message.id, 'failed');
-        console.error('WhatsApp template rejected: HTTP', response.status,
+        console.error('WhatsApp reply rejected: HTTP', response.status,
           'Meta code', Number(error.error?.code) || 0,
           'subcode', Number(error.error?.error_subcode) || 0);
         return;
@@ -141,7 +139,7 @@ if (typeof Deno !== 'undefined') {
     verifyToken: env('WHATSAPP_VERIFY_TOKEN'), appSecret: env('META_APP_SECRET'),
     token: env('WHATSAPP_ACCESS_TOKEN'), phoneId: env('WHATSAPP_PHONE_NUMBER_ID'),
     enabled: env('WHATSAPP_AUTO_REPLY_ENABLED').toLowerCase() === 'true',
-    version: env('WHATSAPP_API_VERSION') || 'v25.0', image: env('WHATSAPP_TEMPLATE_IMAGE_URL') || IMAGE,
+    version: env('WHATSAPP_API_VERSION') || 'v25.0',
   };
   Deno.serve(makeHandler(config, fetch, promise => EdgeRuntime.waitUntil(promise)));
 }

@@ -19,7 +19,7 @@ function payload(messages, phone='123') {
   }}]}]};
 }
 function message(id='m1',type='text',age=0) {
-  return {id,from:'10000000000',type,timestamp:String(Math.floor(Date.now()/1000)-age)};
+  return {id,from:'10000000000',type,text:{body:'I want rose perfume'},timestamp:String(Math.floor(Date.now()/1000)-age)};
 }
 function backend(failSend=false) {
   const rows=new Map(),delivery=new Map(),sent=[];
@@ -61,9 +61,10 @@ test('once per message, image header, statuses do not trigger replies',async()=>
   const b=backend(),h=makeHandler(config,b.fetcher);
   assert.equal((await h(await signed(payload([message()])))).status,200);
   assert.equal((await h(await signed(payload([message()])))).status,200);
-  assert.equal(b.sent.length,1);assert.equal(b.sent[0].template.name,'shop_now');
-  assert.equal(b.sent[0].template.language.code,'en');
-  assert.match(b.sent[0].template.components[0].parameters[0].image.link,/Safaa_Al_Nada_3.jpg$/);
+  assert.equal(b.sent.length,1);assert.equal(b.sent[0].interactive.type,'carousel');
+  assert.equal(b.sent[0].interactive.body.text.split('\n').length,2);
+  assert.equal(b.sent[0].interactive.action.cards.length,3);
+  assert.equal(b.sent[0].interactive.action.cards[0].action.parameters.display_text,'Shop Now');
   assert.equal(b.rows.get('m1').state,'accepted');
 });
 test('media messages trigger replies, old events/reactions/wrong phone do not',async()=>{

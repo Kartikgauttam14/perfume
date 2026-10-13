@@ -54,16 +54,16 @@
   <h2>How information is used</h2>
   <p>We process information to answer fragrance questions, provide recommendations, handle
     requested advisor handoffs, respond to messages, investigate errors and feedback, and
-    prevent duplicate WhatsApp replies. The WhatsApp automation can send the approved
-    <strong>shop_now</strong> product template after a new incoming customer message.
+    prevent duplicate WhatsApp replies. The WhatsApp automation answers customer questions
+    and can show relevant perfume images with shopping links after an incoming message.
     Automated recommendations may be inaccurate; contact an advisor for assistance.</p>
 
   <h2>Service providers and sharing</h2>
   <p>The website is hosted by Render. WhatsApp messages are processed through Meta/WhatsApp,
     and the WhatsApp webhook and reply records are hosted by Supabase. Website chat prompts
     and recent conversation history may be sent to OpenRouter and the selected AI model
-    provider to generate an answer. The current WhatsApp template-reply function does not
-    send WhatsApp message content to OpenRouter.</p>
+    provider to generate an answer. WhatsApp replies use keyword matching;
+    WhatsApp question text is not sent to an AI provider.</p>
   <p>Optional speech recognition and speech playback may use your browser’s services.
     If the website’s text-to-speech service is used, text for playback is sent to Google’s
     text-to-speech endpoint. Advisors may receive information you choose to share during

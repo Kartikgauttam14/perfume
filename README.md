@@ -52,8 +52,12 @@ Run isolated tests with `python -m pytest tests/test_whatsapp.py tests/test_what
 ### Supabase Free alternative
 
 Keep Render auto replies disabled when using Supabase, so only one endpoint sends.
-The separate function at `supabase/functions/whatsapp-webhook/index.ts` sends the
-same approved `shop_now` template and uses Postgres instead of a Render disk.
+The separate function at `supabase/functions/whatsapp-webhook/index.ts` uses
+Postgres instead of a Render disk. It answers the incoming question with at most
+two short text lines. Matching perfumes appear as a media carousel with product
+images and Shop Now buttons; one product uses a single image/URL-button message.
+Support and greeting replies do not automatically send product promotions.
+These are service-window replies, not proactive marketing templates.
 
 1. Apply `supabase/migrations/202610130001_whatsapp_reply_events.sql` once. The new
    table has RLS enabled, no public/user policies, and service-role access only.
@@ -64,9 +68,12 @@ same approved `shop_now` template and uses Postgres instead of a Render disk.
    webhook access. Do not expose service-role keys or add public table policies.
 3. Set Edge Function secrets `META_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`,
    `WHATSAPP_ACCESS_TOKEN`, and `WHATSAPP_PHONE_NUMBER_ID=1307049029167597`.
-   Add `WHATSAPP_AUTO_REPLY_ENABLED=true` only when ready to activate. The image,
-   template `shop_now`, language `en`, and API version `v25.0` are configured in
-   the function. Built-in Supabase server secrets provide database access.
+   Add `WHATSAPP_AUTO_REPLY_ENABLED=true` only when ready to activate. API version
+   defaults to `v25.0`. Built-in Supabase secrets provide database access.
+   Keyword-based English/Arabic recommendations work without an AI key.
+   No AI provider receives WhatsApp question text. Each question is matched
+   independently; conversation history is not stored.
+   Never promise stock, sale pricing or delivery dates from the static catalogue.
 4. For project fpyaudimfmhthepqohdm, use callback
    `https://fpyaudimfmhthepqohdm.supabase.co/functions/v1/whatsapp-webhook`.
    Set the same verify token in Meta, subscribe the `messages` field and Mansam
@@ -74,7 +81,10 @@ same approved `shop_now` template and uses Postgres instead of a Render disk.
 5. Test with a customer who requests the reply. Duplicate inbound message IDs are
    suppressed by a database primary key. Old (>24h), reaction, system, unsupported,
    other-phone and error events do not send. Each distinct new customer message
-   triggers a reply; status updates do not. Meta template fees still apply.
+   triggers a reply; status updates do not. This does not send outside the service
+   window. Apply migration `202610130002_whatsapp_delivery_events.sql` to retain
+   asynchronous delivery results. Stop requests receive a non-promotional response;
+   this does not manage subscriptions to any separate marketing campaign.
 
 Supabase background tasks are bounded by function runtime limits. A crash after
 claiming or a send timeout can leave `claimed`/`uncertain` rows, which require
@@ -86,7 +96,10 @@ access and set a customer-data retention policy. Free projects can pause after
 inactivity, and free quotas apply; this is not an always-on availability guarantee.
 
 Test the handler without credentials or real sends:
-`node --test tests/whatsapp_supabase.test.mjs` (Node 24+).
+`node --test tests/whatsapp_supabase.test.mjs tests/whatsapp_recommendations.test.mjs` (Node 24+).
+For the dashboard's single-file editor, concatenate `catalog.ts`, `reply.ts` and
+`index.ts` in that order, removing their local import lines. CLI deployments use
+the source modules directly.
 
 > An intelligent, bilingual AI Concierge & Discovery Suite for **Mansam Fine Fragrances** (Kingdom of Saudi Arabia), built on Retrieval-Augmented Generation (RAG) directly grounded in the brand's Single Source of Truth (SSOT).
 
