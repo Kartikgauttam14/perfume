@@ -63,6 +63,12 @@ async def root_index() -> FileResponse:
     return FileResponse(str(index_file))
 
 
+@app.get("/privacy-policy", include_in_schema=False)
+async def privacy_policy() -> FileResponse:
+    """Public privacy and deletion information for the concierge and Meta app."""
+    return FileResponse(str(STATIC_DIR / "privacy-policy.html"), media_type="text/html")
+
+
 @app.post("/api/chat", response_model=ChatResponse)
 async def chat_endpoint(request: ChatRequest) -> ChatResponse:
     """Handles bilingual conversational queries with RAG grounding."""

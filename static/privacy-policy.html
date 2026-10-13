@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Privacy information and data deletion instructions for the Mansam Perfume concierge website and WhatsApp automation.">
+  <title>Privacy Policy | Mansam Perfume</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #121311; color: #e9e6df; font: 17px/1.7 system-ui, sans-serif; }
+    main { max-width: 850px; margin: auto; padding: 48px 24px 72px; }
+    a { color: #e8c789; text-underline-offset: 4px; }
+    a:focus-visible { outline: 2px solid #e8c789; outline-offset: 4px; }
+    .brand { color: #e8c789; font-size: 13px; letter-spacing: .15em; text-transform: uppercase; }
+    h1 { font-family: Georgia, serif; font-weight: 400; font-size: clamp(36px, 7vw, 52px); line-height: 1.15; margin: 22px 0 14px; }
+    h2 { font-size: 23px; color: #e8c789; margin: 34px 0 10px; }
+    p, ul { margin: 12px 0; }
+    li { margin: 8px 0; }
+    .date { color: #bbb7ad; font-size: 14px; }
+    .contact { padding: 20px; border: 1px solid #655537; border-radius: 12px; margin-top: 22px; }
+    footer { border-top: 1px solid #393a35; padding-top: 22px; margin-top: 38px; font-size: 14px; }
+  </style>
+</head>
+<body>
+<main>
+  <a href="/">← Back to the concierge</a>
+  <p class="brand">Mansam Perfume · Concierge &amp; WhatsApp</p>
+  <h1>Privacy Policy</h1>
+  <p class="date">Effective and last updated: 13 October 2026</p>
+  <p>This policy describes the Mansam Perfume concierge website at
+    <a href="https://perfume-p6gi.onrender.com/">perfume-p6gi.onrender.com</a>
+    and its connected WhatsApp automation (Meta app: Mansam Perfume).
+    It explains what information these services process and how to request its deletion.
+    It does not replace the policies of separate shopping websites or Meta/WhatsApp.</p>
+
+  <h2>Information we process</h2>
+  <ul>
+    <li><strong>Website conversations:</strong> messages you type, recent conversation history,
+      your selected language, fragrance preferences, and feedback you submit about an answer.</li>
+    <li><strong>Advisor requests:</strong> the name, phone number, city or boutique preference,
+      and any other details you choose to provide when requesting a concierge handoff.</li>
+    <li><strong>WhatsApp:</strong> incoming messages and associated identifiers, phone numbers,
+      timestamps, and delivery information provided through Meta’s WhatsApp API.
+      The Supabase automation stores incoming message IDs, recipient numbers, timestamps,
+      reply states, and outgoing message IDs. It does not store message text in that table.</li>
+    <li><strong>Technical information:</strong> hosting and messaging providers may process IP
+      addresses, request information, device/browser information, and operational logs to run
+      and protect their services.</li>
+  </ul>
+  <p>Please do not send payment-card information, passwords, identity documents, or other
+    sensitive information through the concierge chat.</p>
+
+  <h2>How information is used</h2>
+  <p>We process information to answer fragrance questions, provide recommendations, handle
+    requested advisor handoffs, respond to messages, investigate errors and feedback, and
+    prevent duplicate WhatsApp replies. The WhatsApp automation can send the approved
+    <strong>shop_now</strong> product template after a new incoming customer message.
+    Automated recommendations may be inaccurate; contact an advisor for assistance.</p>
+
+  <h2>Service providers and sharing</h2>
+  <p>The website is hosted by Render. WhatsApp messages are processed through Meta/WhatsApp,
+    and the WhatsApp webhook and reply records are hosted by Supabase. Website chat prompts
+    and recent conversation history may be sent to OpenRouter and the selected AI model
+    provider to generate an answer. The current WhatsApp template-reply function does not
+    send WhatsApp message content to OpenRouter.</p>
+  <p>Optional speech recognition and speech playback may use your browser’s services.
+    If the website’s text-to-speech service is used, text for playback is sent to Google’s
+    text-to-speech endpoint. Advisors may receive information you choose to share during
+    a handoff. Providers process data under their own applicable policies and may process
+    information in countries outside your own.</p>
+  <p>Provider information:
+    <a href="https://www.whatsapp.com/legal/privacy-policy">WhatsApp</a>,
+    <a href="https://supabase.com/privacy">Supabase</a>,
+    <a href="https://render.com/privacy">Render</a>,
+    <a href="https://openrouter.ai/privacy">OpenRouter</a>, and
+    <a href="https://policies.google.com/privacy">Google</a>.</p>
+
+  <h2>Browser storage and optional features</h2>
+  <p>The website stores language and audio preferences in your browser’s local storage.
+    You can remove them through your browser’s site-data settings. Speech input requires
+    microphone permission; you can decline or revoke that permission and use text instead.</p>
+
+  <h2>Storage, retention, and security</h2>
+  <p>WhatsApp reply records are stored in a private Supabase database table with row-level
+    security and no public-user access. Server credentials are stored as secrets, and the
+    webhook verifies Meta’s signatures. Website feedback can create persisted correction
+    records. Hosting and provider logs may have their own retention periods.</p>
+  <p>The current WhatsApp integration does not automatically expire reply records.
+    Records remain until removed by the operator or through a deletion request.
+    We cannot promise that any online system is completely secure. Provider backups or
+    records required for legal, security, or dispute-resolution purposes may remain after
+    active records are deleted.</p>
+
+  <h2 id="data-deletion">Your choices and data deletion</h2>
+  <p>You may request access, correction, or deletion of information associated with your
+    use of this service, or ask to stop promotional replies. Requests are handled by a
+    person; sending a keyword to the bot is not an automatic deletion mechanism.</p>
+  <div class="contact">
+    <p><strong>To request deletion:</strong> email
+      <a href="mailto:customercare@mansamworld.com?subject=Mansam%20Perfume%20data%20deletion%20request">customercare@mansamworld.com</a>
+      with the subject <strong>“Mansam Perfume data deletion request.”</strong></p>
+    <p>Include the WhatsApp number you used (with country code), or enough information to
+      identify the relevant website conversation or advisor request. Do not include a
+      password, access token, or identity document. We may ask for reasonable verification
+      before acting on a request.</p>
+    <p>Specify whether you want WhatsApp reply records, website feedback records, or other
+      information associated with this service deleted. You can also ask a human advisor
+      in your existing WhatsApp conversation for privacy assistance. Requests about records
+      held independently by Meta or another provider should also be directed to that provider.</p>
+  </div>
+
+  <h2>Contact and updates</h2>
+  <p>For privacy questions about the Mansam Perfume concierge and WhatsApp service, contact
+    <a href="mailto:customercare@mansamworld.com">customercare@mansamworld.com</a>.
+    If this policy changes, the updated version and date will be published on this page.</p>
+  <footer><a href="/">Mansam Perfume concierge</a> · <a href="#data-deletion">Data deletion instructions</a></footer>
+</main>
+</body>
+</html>
