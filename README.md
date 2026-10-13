@@ -49,6 +49,45 @@ to contacts or send proactive campaigns.
 
 Run isolated tests with `python -m pytest tests/test_whatsapp.py tests/test_whatsapp_reply.py`.
 
+### Supabase Free alternative
+
+Keep Render auto replies disabled when using Supabase, so only one endpoint sends.
+The separate function at `supabase/functions/whatsapp-webhook/index.ts` sends the
+same approved `shop_now` template and uses Postgres instead of a Render disk.
+
+1. Apply `supabase/migrations/202610130001_whatsapp_reply_events.sql` once. The new
+   table has RLS enabled, no public/user policies, and service-role access only.
+   It stores message IDs, recipient numbers, timestamps and send states, not text.
+2. Deploy the function as `whatsapp-webhook`. Disable Supabase's JWT verification
+   for this function only; Meta's `X-Hub-Signature-256` HMAC is checked by the
+   handler instead. Obtain owner approval before configuring credentials/public
+   webhook access. Do not expose service-role keys or add public table policies.
+3. Set Edge Function secrets `META_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN`,
+   `WHATSAPP_ACCESS_TOKEN`, and `WHATSAPP_PHONE_NUMBER_ID=1307049029167597`.
+   Add `WHATSAPP_AUTO_REPLY_ENABLED=true` only when ready to activate. The image,
+   template `shop_now`, language `en`, and API version `v25.0` are configured in
+   the function. Built-in Supabase server secrets provide database access.
+4. For project fpyaudimfmhthepqohdm, use callback
+   `https://fpyaudimfmhthepqohdm.supabase.co/functions/v1/whatsapp-webhook`.
+   Set the same verify token in Meta, subscribe the `messages` field and Mansam
+   account, and complete Meta publishing requirements before production use.
+5. Test with a customer who requests the reply. Duplicate inbound message IDs are
+   suppressed by a database primary key. Old (>24h), reaction, system, unsupported,
+   other-phone and error events do not send. Each distinct new customer message
+   triggers a reply; status updates do not. Meta template fees still apply.
+
+Supabase background tasks are bounded by function runtime limits. A crash after
+claiming or a send timeout can leave `claimed`/`uncertain` rows, which require
+manual review against Meta delivery records before retrying. Do not clear the
+table or reset rows casually; this can send duplicate messages. `accepted` means
+Meta accepted the request, not confirmed delivery. Disabled-mode messages are
+recorded as `disabled` and are not replayed on activation. Restrict database
+access and set a customer-data retention policy. Free projects can pause after
+inactivity, and free quotas apply; this is not an always-on availability guarantee.
+
+Test the handler without credentials or real sends:
+`node --test tests/whatsapp_supabase.test.mjs` (Node 24+).
+
 > An intelligent, bilingual AI Concierge & Discovery Suite for **Mansam Fine Fragrances** (Kingdom of Saudi Arabia), built on Retrieval-Augmented Generation (RAG) directly grounded in the brand's Single Source of Truth (SSOT).
 
 ---
