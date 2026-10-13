@@ -22,7 +22,7 @@ function message(id='m1',type='text',age=0) {
   return {id,from:'10000000000',type,timestamp:String(Math.floor(Date.now()/1000)-age)};
 }
 function backend(failSend=false) {
-  const rows=new Map(),sent=[];
+  const rows=new Map(),delivery=new Map(),sent=[];
   const fetcher=async (url,options)=>{
     const body=JSON.parse(options.body);
     if(url.includes('graph.facebook.com')) {
@@ -31,6 +31,11 @@ function backend(failSend=false) {
       return Response.json({messages:[{id:'out1'}]});
     }
     if(options.method==='POST') {
+      if(url.includes('whatsapp_delivery_events')) {
+        if(delivery.has(body.event_key)) return new Response('',{status:409});
+        delivery.set(body.event_key,body);
+        return new Response('',{status:201});
+      }
       if(rows.has(body.message_id)) return new Response('',{status:409});
       rows.set(body.message_id,body);
       return new Response('',{status:201});
@@ -39,7 +44,7 @@ function backend(failSend=false) {
     Object.assign(rows.get(id),body);
     return new Response(null,{status:204});
   };
-  return {rows,sent,fetcher};
+  return {rows,delivery,sent,fetcher};
 }
 test('verification challenge and invalid tokens',async()=>{
   const h=makeHandler(config);
@@ -80,4 +85,16 @@ test('uncertain delivery is retained without duplicate retry',async()=>{
 test('database outage requests Meta retry and never sends',async()=>{
   const h=makeHandler(config,async()=>new Response('',{status:503}));
   assert.equal((await h(await signed(payload([message()])))).status,503);
+});
+test('delivery failure is stored once and never triggers another reply',async()=>{
+  const b=backend(),h=makeHandler(config,b.fetcher);
+  const event=payload([]);
+  event.entry[0].changes[0].value.statuses=[{
+    id:'out1',status:'failed',timestamp:String(Math.floor(Date.now()/1000)),
+    errors:[{code:131049,title:'Delivery rejected'}]
+  }];
+  assert.equal((await h(await signed(event))).status,200);
+  assert.equal((await h(await signed(event))).status,200);
+  assert.equal(b.delivery.size,1);assert.equal(b.sent.length,0);
+  assert.equal([...b.delivery.values()][0].error_code,131049);
 });

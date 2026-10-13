@@ -11,11 +11,11 @@ export async function validSignature(raw, signature, secret) {
 }
 
 export function makeHandler(config, fetcher = fetch, waitUntil = null) {
-  const dbUrl = `${config.url}/rest/v1/whatsapp_reply_events`;
+  const dbUrl = `${config.url}/rest/v1/`;
   const dbHeaders = { apikey: config.dbKey, Authorization: `Bearer ${config.dbKey}`,
     'Content-Type': 'application/json' };
-  async function db(method, query, body) {
-    return fetcher(dbUrl + query, { method, headers: dbHeaders,
+  async function db(method, query, body, table = 'whatsapp_reply_events') {
+    return fetcher(dbUrl + table + query, { method, headers: dbHeaders,
       body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
   }
   async function finish(id, state, outgoingId = null) {
@@ -35,8 +35,11 @@ export function makeHandler(config, fetcher = fetch, waitUntil = null) {
                 image: { link: config.image || IMAGE } }] }] } }),
         });
       if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
         await finish(message.id, 'failed');
-        console.error('WhatsApp template rejected: HTTP', response.status);
+        console.error('WhatsApp template rejected: HTTP', response.status,
+          'Meta code', Number(error.error?.code) || 0,
+          'subcode', Number(error.error?.error_subcode) || 0);
         return;
       }
       const result = await response.json();
@@ -45,6 +48,20 @@ export function makeHandler(config, fetcher = fetch, waitUntil = null) {
       // A timed-out send might have succeeded: do not send it again automatically.
       console.error('WhatsApp send/update uncertain; review inbox before retry');
       try { await finish(message.id, 'uncertain'); } catch { /* retain claimed state */ }
+    }
+  }
+  async function saveStatuses(statuses) {
+    for (const status of statuses) {
+      if (!status?.id || !status.status || !Number.isFinite(Number(status.timestamp))) continue;
+      const errorCode = Number(status.errors?.[0]?.code) || null;
+      const response = await db('POST', '', {
+        event_key: `${status.id}:${status.status}:${status.timestamp}`,
+        outgoing_id: status.id, delivery_state: String(status.status).slice(0, 32),
+        event_at: new Date(Number(status.timestamp) * 1000).toISOString(),
+        error_code: errorCode,
+      }, 'whatsapp_delivery_events');
+      if (!response.ok && response.status !== 409) throw new Error('Status insert failed');
+      if (status.status === 'failed') console.error('WhatsApp delivery failed: Meta code', errorCode);
     }
   }
   return async function handler(request) {
@@ -75,7 +92,8 @@ export function makeHandler(config, fetcher = fetch, waitUntil = null) {
       for (const entry of payload.entry) {
         if (!Array.isArray(entry.changes)) throw new Error('Invalid changes');
         for (const change of entry.changes) {
-          if (!change.value || (change.value.messages && !Array.isArray(change.value.messages)))
+          if (!change.value || (change.value.messages && !Array.isArray(change.value.messages))
+              || (change.value.statuses && !Array.isArray(change.value.statuses)))
             throw new Error('Invalid messages');
         }
       }
@@ -86,6 +104,7 @@ export function makeHandler(config, fetcher = fetch, waitUntil = null) {
       for (const entry of payload.entry) for (const change of entry.changes) {
         const value = change.value;
         if (value.metadata?.phone_number_id !== config.phoneId) continue;
+        await saveStatuses(value.statuses || []);
         for (const message of value.messages || []) {
           const age = Date.now() / 1000 - Number(message?.timestamp);
           if (!message?.id || !/^\d{5,20}$/.test(message.from || '')
