@@ -1,0 +1,40 @@
+{
+  "name": "Mansam Floral Collection",
+  "status": "draft",
+  "enabled": false,
+  "template_name": "mansam_floral_collection",
+  "template_category": "MARKETING",
+  "language": "en",
+  "body": "Discover three floral fragrances from Mansam.\nSwipe to find your favourite and tap Shop Now.",
+  "cards": [
+    {
+      "name": "Hams Min Al Sahraa",
+      "image": "https://ae.mansamworld.com/images/products/480/Hams_Min_Al_Sahraa_3.jpg",
+      "button": "Shop Now",
+      "url": "https://ae.mansamworld.com/productDetails/Eau_de_Parfum_100ml/Hams_Min_Al_Sahraa_/44"
+    },
+    {
+      "name": "Nasseem Al Ward",
+      "image": "https://ae.mansamworld.com/images/products/480/Nasseem_Al_Ward_3.jpg",
+      "button": "Shop Now",
+      "url": "https://ae.mansamworld.com/productDetails/Eau_de_Parfum_100ml/Nasseem_Al_Ward/47"
+    },
+    {
+      "name": "Qublat Ward",
+      "image": "https://ae.mansamworld.com/images/products/480/Qublat_3.jpg",
+      "button": "Shop Now",
+      "url": "https://ae.mansamworld.com/productDetails/Eau_de_Parfum_100ml/Qublat_Ward/49"
+    }
+  ],
+  "recipients_file": null,
+  "send_at": null,
+  "timezone": "Asia/Calcutta",
+  "repeat": null,
+  "required_before_launch": [
+    "Create and obtain Meta approval for the marketing carousel template; this draft is not an approved template.",
+    "Receive customer CSV and verify marketing consent and suppression list.",
+    "Confirm sending date, time, frequency and recipient count.",
+    "Implement and deploy the authenticated campaign queue and scheduler with duplicate protection and opt-out handling.",
+    "Review the final campaign and applicable Meta charges with the owner before activation."
+  ]
+}
