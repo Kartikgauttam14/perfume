@@ -101,6 +101,27 @@ For the dashboard's single-file editor, concatenate `catalog.ts`, `reply.ts` and
 `index.ts` in that order, removing their local import lines. CLI deployments use
 the source modules directly.
 
+### Marketing carousel review
+
+`campaigns/mansam-floral-carousel.json` is the inactive three-card campaign draft.
+The `whatsapp-template-admin` Edge Function submits that fixed draft to Meta using
+the existing server-side WhatsApp token. It uploads public product images through
+Meta's resumable upload API and returns only template ID/name/status. GET checks
+status; POST creates the template only if that name/language is not already present.
+It cannot send customer messages or approve a template on Meta's behalf.
+
+Keep **Verify JWT with legacy secret ON** for this function. Supabase's gateway
+verifies the JWT signature and expiration; the handler additionally requires the
+project's service_role claim. Never disable gateway verification: the role check
+is not a standalone signature verifier. Existing administrator JWTs can be used
+privately in the dashboard tester. Do not put credentials in source or chat.
+The customer webhook's separate HMAC authentication is unchanged.
+
+After submission, wait for Meta's APPROVED status before campaign sends. The
+campaign still needs opted-in recipients and an authenticated sender/scheduler.
+Run `node --test tests/whatsapp_template_admin.test.mjs` to check submission and
+administrator restrictions with mocked API calls.
+
 > An intelligent, bilingual AI Concierge & Discovery Suite for **Mansam Fine Fragrances** (Kingdom of Saudi Arabia), built on Retrieval-Augmented Generation (RAG) directly grounded in the brand's Single Source of Truth (SSOT).
 
 ---

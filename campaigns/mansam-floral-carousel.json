@@ -36,5 +36,7 @@
     "Confirm sending date, time, frequency and recipient count.",
     "Implement and deploy the authenticated campaign queue and scheduler with duplicate protection and opt-out handling.",
     "Review the final campaign and applicable Meta charges with the owner before activation."
-  ]
+  ],
+  "template_id": "1119430997220185",
+  "template_review_status": "PENDING"
 }

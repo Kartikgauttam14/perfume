@@ -1,3 +1,6 @@
 [functions.whatsapp-webhook]
 # Meta cannot present a Supabase user JWT. The handler checks Meta's HMAC instead.
 verify_jwt = false
+
+[functions.whatsapp-template-admin]
+verify_jwt = true
