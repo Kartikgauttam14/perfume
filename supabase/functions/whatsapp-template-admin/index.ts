@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { sendTemplateTests } from './send-test.ts';
 // Keep gateway JWT verification ON: the gateway verifies signature and expiration.
 // The handler additionally restricts the signed token to this project's service_role.
 export function administrator(request, config) {
@@ -44,6 +45,11 @@ export function makeTemplateAdmin(config, campaign, fetcher = fetch) {
     try {
       const existing = await graph(`${config.waba}/message_templates?name=${campaign.template_name}&fields=id,name,status,language&limit=10`);
       const template = existing.data?.find(t=>t.name===campaign.template_name && t.language===campaign.language);
+      const input = request.method==='POST' ? await request.json().catch(()=>({})) : {};
+      if (input.action === 'send_test') {
+        if (template?.status !== 'APPROVED') return Response.json({error:'Template is not approved',template},{status:409});
+        return await sendTemplateTests(input,config,campaign,graph,fetcher);
+      }
       if (template || request.method==='GET') return Response.json({template:template || null});
       const cards = [];
       for (const card of campaign.cards) cards.push({components:[
@@ -71,10 +77,14 @@ export function makeTemplateAdmin(config, campaign, fetcher = fetch) {
 const CAMPAIGN_DATA = {"template_name": "mansam_floral_collection", "language": "en", "body": "Discover three floral fragrances from Mansam.\nSwipe to find your favourite and tap Shop Now.", "cards": [{"name": "Hams Min Al Sahraa", "image": "https://ae.mansamworld.com/images/products/480/Hams_Min_Al_Sahraa_3.jpg", "button": "Shop Now", "url": "https://ae.mansamworld.com/productDetails/Eau_de_Parfum_100ml/Hams_Min_Al_Sahraa_/44"}, {"name": "Nasseem Al Ward", "image": "https://ae.mansamworld.com/images/products/480/Nasseem_Al_Ward_3.jpg", "button": "Shop Now", "url": "https://ae.mansamworld.com/productDetails/Eau_de_Parfum_100ml/Nasseem_Al_Ward/47"}, {"name": "Qublat Ward", "image": "https://ae.mansamworld.com/images/products/480/Qublat_3.jpg", "button": "Shop Now", "url": "https://ae.mansamworld.com/productDetails/Eau_de_Parfum_100ml/Qublat_Ward/49"}]};
 
 if (typeof Deno !== 'undefined') {
+  const keys=JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') || '{}');
   Deno.serve(makeTemplateAdmin({
     adminKey: Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
     projectRef: 'fpyaudimfmhthepqohdm',
     token: Deno.env.get('WHATSAPP_ACCESS_TOKEN'),
+    dbUrl: Deno.env.get('SUPABASE_URL'),
+    dbKey: keys.default || Object.values(keys)[0] || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'),
+    phoneId: Deno.env.get('WHATSAPP_PHONE_NUMBER_ID'),
     appId: '1075092785431646', waba: '1667300438368749',
   }, CAMPAIGN_DATA));
 }

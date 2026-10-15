@@ -108,7 +108,14 @@ The `whatsapp-template-admin` Edge Function submits that fixed draft to Meta usi
 the existing server-side WhatsApp token. It uploads public product images through
 Meta's resumable upload API and returns only template ID/name/status. GET checks
 status; POST creates the template only if that name/language is not already present.
-It cannot send customer messages or approve a template on Meta's behalf.
+It cannot approve a template on Meta's behalf. Administrator POST requests with
+`action: "send_test"`, explicit `recipients` (one or two international numbers)
+and a unique `batch_id` can send the approved template once per recipient.
+The private reply table records each batch/recipient claim and outgoing ID;
+reusing a batch suppresses duplicate sends. Do not change batch IDs to retry
+failed/uncertain sends without reviewing delivery first. Customer numbers belong
+only in private requests, never committed to source. The sender uploads the three
+product images to Meta before sending. This is not a bulk campaign scheduler.
 
 Keep **Verify JWT with legacy secret ON** for this function. Supabase's gateway
 verifies the JWT signature and expiration; the handler additionally requires the
@@ -118,7 +125,7 @@ privately in the dashboard tester. Do not put credentials in source or chat.
 The customer webhook's separate HMAC authentication is unchanged.
 
 After submission, wait for Meta's APPROVED status before campaign sends. The
-campaign still needs opted-in recipients and an authenticated sender/scheduler.
+campaign still needs opted-in recipients and a bulk sender/scheduler.
 Run `node --test tests/whatsapp_template_admin.test.mjs` to check submission and
 administrator restrictions with mocked API calls.
 
